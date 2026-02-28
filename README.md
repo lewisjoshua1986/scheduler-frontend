@@ -56,6 +56,7 @@ The application supports **drag-and-drop event management**, repeating events, r
 ---
 
 ## Project Architecture
+```
 scheduler-frontend/
 │
 ├─ src/
@@ -69,7 +70,7 @@ scheduler-frontend/
 │ │ └─ app-routing.module.ts
 │ └─ assets/
 │ └─ mock-data/ # Sample JSON events for initial development
-
+```
 
 ---
 
