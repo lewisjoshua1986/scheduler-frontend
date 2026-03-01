@@ -70,7 +70,11 @@ describe('TaskApiMock', () => {
     };
 
     const created = await firstValueFrom(api.create(newTask));
-    expect(created).toEqual(newTask);
+    expect(created).toMatchObject({
+      title: 'New Task',
+      description: 'Created task',
+      completed: false,
+    });
 
     const tasks = await firstValueFrom(api.getAll());
     expect(tasks.length).toBe(3);

@@ -53,7 +53,7 @@ export class TaskService {
   // UPDATE
   // --------------------------------------------------
 
-  update(p0: string, updateDto: { completed: boolean }, task: Task): Observable<Task> {
+  update(task: Task): Observable<Task> {
     const dto: Partial<TaskDto> = {
       title: task.title,
       description: task.description || undefined,

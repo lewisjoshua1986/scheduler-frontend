@@ -1,22 +1,28 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
-import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { of, throwError, firstValueFrom } from 'rxjs';
 
 import { TaskService } from './task.service';
-import { Task } from '../models/task/task.model';
+import { TaskApi } from '../api/interfaces/task-api.interface';
 import { TaskDto } from '../models/task/task.dto';
-import { environment } from '../../../environments/environment';
-import { firstValueFrom } from 'rxjs';
+import { Task } from '../models/task/task.model';
 
-describe('TaskService', () => {
+describe('TaskService (Vitest)', () => {
   let service: TaskService;
-  let httpMock: HttpTestingController;
 
-  const mockTaskDto: TaskDto = {
+  let apiMock: {
+    getAll: ReturnType<typeof vi.fn>;
+    getById: ReturnType<typeof vi.fn>;
+    create: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+    delete: ReturnType<typeof vi.fn>;
+    getTasksByEventId: ReturnType<typeof vi.fn>;
+  };
+
+  const baseDto: TaskDto = {
     id: '1',
     title: 'Test Task',
-    description: 'Testing task service',
+    description: 'Testing',
     completed: false,
     eventId: null,
     createdAt: new Date().toISOString(),
@@ -24,116 +30,171 @@ describe('TaskService', () => {
   };
 
   beforeEach(() => {
+    apiMock = {
+      getAll: vi.fn(),
+      getById: vi.fn(),
+      create: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      getTasksByEventId: vi.fn(),
+    };
+
     TestBed.configureTestingModule({
-      providers: [TaskService, provideHttpClient(), provideHttpClientTesting()],
+      providers: [TaskService, { provide: TaskApi, useValue: apiMock }],
     });
 
     service = TestBed.inject(TaskService);
-    httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => {
-    httpMock.verify();
+  // ===============================
+  // GET ALL
+  // ===============================
+
+  it('should fetch all tasks and map DTOs to Task instances', async () => {
+    apiMock.getAll.mockReturnValue(of([baseDto]));
+
+    const tasks = await firstValueFrom(service.getAll());
+
+    expect(apiMock.getAll).toHaveBeenCalledOnce();
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toBeInstanceOf(Task);
+    expect(tasks[0].id).toBe('1');
   });
 
-  it('should fetch all tasks and map DTOs to Task instances (GET)', () => {
-    service.getAll().subscribe((tasks) => {
-      expect(tasks.length).toBe(1);
-      expect(tasks[0]).toBeInstanceOf(Task);
-      expect(tasks[0].id).toBe(mockTaskDto.id);
-      expect(tasks[0].createdAt).toBeInstanceOf(Date);
-    });
+  it('should return empty array when API returns empty array', async () => {
+    apiMock.getAll.mockReturnValue(of([]));
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/tasks`);
-    expect(req.request.method).toBe('GET');
+    const tasks = await firstValueFrom(service.getAll());
 
-    req.flush([mockTaskDto]);
+    expect(tasks).toEqual([]);
   });
 
-  it('should fetch a task by id and map to Task instance (GET)', () => {
-    service.getById('1').subscribe((task) => {
-      expect(task).toBeInstanceOf(Task);
-      expect(task?.id).toBe('1');
-      expect(task?.title).toBe(mockTaskDto.title);
-    });
+  // ===============================
+  // GET BY ID
+  // ===============================
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/tasks/1`);
-    expect(req.request.method).toBe('GET');
+  it('should fetch a task by id', async () => {
+    apiMock.getById.mockReturnValue(of(baseDto));
 
-    req.flush(mockTaskDto);
+    const task = await firstValueFrom(service.getById('1'));
+
+    expect(apiMock.getById).toHaveBeenCalledWith('1');
+    expect(task).toBeInstanceOf(Task);
+    expect(task?.id).toBe('1');
   });
 
-  it('should create a task (POST)', () => {
-    const createDto = {
-      title: 'New Task',
-      description: 'Created via test',
-    };
+  // ===============================
+  // CREATE
+  // ===============================
 
-    service.create(createDto.title, createDto.description).subscribe((task) => {
-      expect(task).toBeInstanceOf(Task);
-      expect(task.title).toBe(mockTaskDto.title);
-    });
+  it('should create a task without eventId', async () => {
+    apiMock.create.mockReturnValue(of(baseDto));
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/tasks`);
-    expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual(createDto);
+    const task = await firstValueFrom(service.create('New Task', 'Optional'));
 
-    req.flush(mockTaskDto);
+    expect(apiMock.create).toHaveBeenCalled();
+    expect(task).toBeInstanceOf(Task);
+    expect(task.eventId).toBeNull();
   });
 
-  it('should update a task (PATCH)', async () => {
-    const updateDto = {
-      completed: true,
-    };
+  it('should create a task with eventId', async () => {
+    const dtoWithEvent = { ...baseDto, eventId: 'event-123' };
+    apiMock.create.mockReturnValue(of(dtoWithEvent));
 
-    // Create domain Task instance
-    const existingTask = new Task(
-      mockTaskDto.id,
-      mockTaskDto.title,
-      mockTaskDto.description || '',
-      mockTaskDto.completed,
-      mockTaskDto.eventId || null,
-      new Date(mockTaskDto.createdAt),
-      new Date(mockTaskDto.updatedAt),
+    const task = await firstValueFrom(service.create('Scheduled Task', 'event-123'));
+
+    expect(task.eventId).toBe('event-123');
+  });
+
+  // ===============================
+  // UPDATE
+  // ===============================
+
+  it('should update a task', async () => {
+    const existingTask = new Task('1', 'Test', 'Desc', true, null, new Date(), new Date());
+
+    apiMock.update.mockReturnValue(
+      of({
+        id: '1',
+        title: 'Test',
+        description: 'Desc',
+        completed: true,
+        eventId: null,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }),
     );
 
-    const promise = firstValueFrom(service.update('1', updateDto, existingTask));
+    const updated = await firstValueFrom(service.update(existingTask));
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/tasks/1`);
-
-    expect(req.request.method).toBe('PATCH');
-    expect(req.request.body).toEqual(updateDto);
-
-    req.flush(mockTaskDto);
-
-    const updatedTask = await promise;
-
-    expect(updatedTask).toBeInstanceOf(Task);
-    expect(updatedTask.id).toBe('1');
-  });
-
-  it('should delete a task (DELETE)', () => {
-    service.delete('1').subscribe((response) => {
-      expect(response).toBeNull();
+    expect(apiMock.update).toHaveBeenCalledWith('1', {
+      title: 'Test',
+      description: 'Desc',
+      completed: true,
+      eventId: null,
     });
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/tasks/1`);
-    expect(req.request.method).toBe('DELETE');
-
-    req.flush(null);
+    expect(updated.completed).toBe(true);
   });
 
-  it('should propagate HTTP errors', () => {
-    service.getAll().subscribe({
-      next: () => {
-        throw new Error('Expected error, but got success');
-      },
-      error: (error) => {
-        expect(error.status).toBe(500);
-      },
-    });
+  it('should allow updating eventId to null (decoupling)', async () => {
+    const updatedDto = { ...baseDto, eventId: null };
+    apiMock.update.mockReturnValue(of(updatedDto));
 
-    const req = httpMock.expectOne(`${environment.apiUrl}/tasks`);
-    req.flush({ message: 'Server error' }, { status: 500, statusText: 'Internal Server Error' });
+    const task = await firstValueFrom(service.update({ eventId: null } as Task));
+
+    expect(task.eventId).toBeNull();
+  });
+
+  // ===============================
+  // DELETE
+  // ===============================
+
+  it('should delete a task', async () => {
+    apiMock.delete.mockReturnValue(of(void 0));
+
+    const result = await firstValueFrom(service.delete('1'));
+
+    expect(apiMock.delete).toHaveBeenCalledWith('1');
+    expect(result).toBeUndefined();
+  });
+
+  // ===============================
+  // GET TASKS BY EVENT ID
+  // ===============================
+
+  it('should get tasks by eventId', async () => {
+    const dtoWithEvent = { ...baseDto, eventId: 'event-1' };
+    apiMock.getTasksByEventId.mockReturnValue(of([dtoWithEvent]));
+
+    const tasks = await firstValueFrom(service.getTasksForEvent('event-1'));
+
+    expect(apiMock.getTasksByEventId).toHaveBeenCalledWith('event-1');
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0].eventId).toBe('event-1');
+  });
+
+  it('should return empty array if no tasks for event', async () => {
+    apiMock.getTasksByEventId.mockReturnValue(of([]));
+
+    const tasks = await firstValueFrom(service.getTasksForEvent('missing-event'));
+
+    expect(tasks).toEqual([]);
+  });
+
+  // ===============================
+  // ERROR HANDLING
+  // ===============================
+
+  it('should propagate API errors from getAll', async () => {
+    apiMock.getAll.mockReturnValue(throwError(() => new Error('API failure')));
+
+    await expect(firstValueFrom(service.getAll())).rejects.toThrow('API failure');
+  });
+
+  it('should propagate API errors from update', async () => {
+    apiMock.update.mockReturnValue(throwError(() => new Error('Update failed')));
+
+    await expect(firstValueFrom(service.update({} as Task))).rejects.toThrow('Update failed');
   });
 });
