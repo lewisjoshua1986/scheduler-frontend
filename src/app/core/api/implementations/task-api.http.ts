@@ -4,11 +4,13 @@ import { Observable } from 'rxjs';
 import { TaskApi } from '../interfaces/task-api.interface';
 import { TaskDto } from '../../models/task/task.dto';
 
+import { environment } from '../../../../environments/environment';
+
 @Injectable({
   providedIn: 'root',
 })
 export class TaskApiHttp implements TaskApi {
-  private readonly baseUrl = '/api/tasks';
+  private readonly baseUrl = `${environment.apiUrl}/tasks`;
 
   constructor(private http: HttpClient) {}
 
