@@ -3,7 +3,6 @@ import { Task } from './task.model';
 import { TaskDto } from './task.dto';
 
 export class TaskMapper {
-
   static fromDto(dto: TaskDto): Task {
     return new Task(
       dto.id,
@@ -12,7 +11,7 @@ export class TaskMapper {
       dto.completed,
       dto.eventId ?? null,
       new Date(dto.createdAt),
-      new Date(dto.updatedAt)
+      new Date(dto.updatedAt),
     );
   }
 
@@ -24,7 +23,7 @@ export class TaskMapper {
       completed: task.completed,
       eventId: task.eventId,
       createdAt: task.createdAt.toISOString(),
-      updatedAt: task.updatedAt.toISOString()
+      updatedAt: task.updatedAt.toISOString(),
     };
   }
 }

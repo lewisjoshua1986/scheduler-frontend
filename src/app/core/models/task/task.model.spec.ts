@@ -1,19 +1,10 @@
 import { Task } from './task.model';
 
 describe('Task Model', () => {
-
   let task: Task;
 
   beforeEach(() => {
-    task = new Task(
-      '1',
-      'Test Task',
-      null,
-      false,
-      null,
-      new Date(),
-      new Date()
-    );
+    task = new Task('1', 'Test Task', null, false, null, new Date(), new Date());
   });
 
   it('should toggle completed state', () => {
@@ -37,5 +28,4 @@ describe('Task Model', () => {
   it('should throw error if renaming to empty string', () => {
     expect(() => task.rename('')).toThrow();
   });
-
 });

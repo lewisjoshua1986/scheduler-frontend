@@ -1,12 +1,11 @@
-import { Observable } from "rxjs";
-import { Task } from "../../models/task/task.model";
-import { CreateTaskDto } from "../../models/task/create-task.dto";
-import { UpdateTaskDto } from "../../models/task/update-task.dto";
+import { Observable } from 'rxjs';
+import { TaskDto } from '../../models/task/task.dto';
 
-export interface TaskApi {
-  getTasks(): Observable<Task[]>;
-  getTask(id: string): Observable<Task>;
-  createTask(task: CreateTaskDto): Observable<Task>;
-  updateTask(id: string, task: UpdateTaskDto): Observable<Task>;
-  deleteTask(id: string): Observable<void>;
+export abstract class TaskApi {
+  abstract getAll(): Observable<TaskDto[]>;
+  abstract getById(id: string): Observable<TaskDto | null>;
+  abstract getTasksByEventId(eventId: string): Observable<TaskDto[]>;
+  abstract create(dto: Partial<TaskDto>): Observable<TaskDto>;
+  abstract update(id: string, dto: Partial<TaskDto>): Observable<TaskDto>;
+  abstract delete(id: string): Observable<void>;
 }

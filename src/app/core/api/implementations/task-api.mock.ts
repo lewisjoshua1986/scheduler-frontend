@@ -1,62 +1,102 @@
-import { Injectable } from "@angular/core";
-import { delay, Observable, of } from "rxjs";
-import { TaskApi } from "../interfaces/task-api.interface";
-import { Task } from "../../models/task/task.model";
-import { CreateTaskDto } from "../../models/task/create-task.dto";
-import { UpdateTaskDto } from "../../models/task/update-task.dto";
+import { Injectable } from '@angular/core';
+import { Observable, of, delay } from 'rxjs';
+
+import { TaskApi } from '../interfaces/task-api.interface';
+import { TaskDto } from '../../models/task/task.dto';
 
 @Injectable()
-export class TaskApiMock implements TaskApi {
-
-  private tasks: Task[] = [
-    new Task('1', 'Mock Task 1', 'First mock task', false, null, new Date(), new Date()),
-    new Task('2', 'Mock Task 2', 'Second mock task', true, null, new Date(), new Date())
+export class TaskApiMock extends TaskApi {
+  private tasks: TaskDto[] = [
+    {
+      id: '1',
+      title: 'Fuel vehicle',
+      description: 'Top off before departure',
+      completed: false,
+      eventId: 'event-1',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+    {
+      id: '2',
+      title: 'Confirm pickup time',
+      description: '',
+      completed: false,
+      eventId: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
   ];
 
-  getTasks(): Observable<Task[]> {
-    return of(this.tasks).pipe(delay(500));
+  // --------------------------------------------------
+  // READ
+  // --------------------------------------------------
+
+  getAll(): Observable<TaskDto[]> {
+    return of([...this.tasks]).pipe(delay(200));
   }
 
-  getTask(id: string): Observable<Task> {
-    const task = this.tasks.find(t => t.id === id);
-    return of(task!).pipe(delay(500));
+  getById(id: string): Observable<TaskDto | null> {
+    const found = this.tasks.find((t) => t.id === id) ?? null;
+    return of(found).pipe(delay(200));
   }
 
-  createTask(task: CreateTaskDto): Observable<Task> {
-    const now = new Date();
-    const newTask = new Task(
-      crypto.randomUUID(),
-      task.title,
-      task.description ?? null,
-      false,
-      null,
-      now,
-      now
-    );
+  getTasksByEventId(eventId: string): Observable<TaskDto[]> {
+    const filtered = this.tasks.filter((t) => t.eventId === eventId);
+    return of(filtered).pipe(delay(200));
+  }
+
+  // --------------------------------------------------
+  // CREATE
+  // --------------------------------------------------
+
+  create(dto: Partial<TaskDto>): Observable<TaskDto> {
+    const now = new Date().toISOString();
+
+    const newTask: TaskDto = {
+      id: crypto.randomUUID(),
+      title: dto.title ?? '',
+      description: dto.description ?? '',
+      completed: dto.completed ?? false,
+      eventId: dto.eventId ?? null,
+      createdAt: now,
+      updatedAt: now,
+    };
+
     this.tasks.push(newTask);
-    return of(newTask).pipe(delay(500));
+
+    return of(newTask).pipe(delay(200));
   }
 
-  updateTask(id: string, task: UpdateTaskDto): Observable<Task> {
-    const existing = this.tasks.find(t => t.id === id);
-    if (!existing) {
-      throw new Error('Task not found');
+  // --------------------------------------------------
+  // UPDATE
+  // --------------------------------------------------
+
+  update(id: string, dto: Partial<TaskDto>): Observable<TaskDto> {
+    const index = this.tasks.findIndex((t) => t.id === id);
+
+    if (index === -1) {
+      throw new Error(`Task with id ${id} not found`);
     }
-    if (task.title !== undefined) {
-      existing.title = task.title;
-    }
-    if (task.description !== undefined) {
-      existing.description = task.description;
-    }
-    if (task.completed !== undefined) {
-      existing.completed = task.completed;
-    }
-    existing.updatedAt = new Date();
-    return of(existing).pipe(delay(500));
+
+    const existing = this.tasks[index];
+
+    const updated: TaskDto = {
+      ...existing,
+      ...dto,
+      updatedAt: new Date().toISOString(),
+    };
+
+    this.tasks[index] = updated;
+
+    return of(updated).pipe(delay(200));
   }
 
-  deleteTask(id: string): Observable<void> {
-    this.tasks = this.tasks.filter(t => t.id !== id);
-    return of(void 0).pipe(delay(500));
+  // --------------------------------------------------
+  // DELETE
+  // --------------------------------------------------
+
+  delete(id: string): Observable<void> {
+    this.tasks = this.tasks.filter((t) => t.id !== id);
+    return of(void 0).pipe(delay(200));
   }
 }

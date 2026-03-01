@@ -1,15 +1,13 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
-import {
-  provideHttpClientTesting,
-  HttpTestingController,
-} from '@angular/common/http/testing';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 
 import { TaskService } from './task.service';
 import { Task } from '../models/task/task.model';
 import { TaskDto } from '../models/task/task.dto';
 import { environment } from '../../../environments/environment';
+import { firstValueFrom } from 'rxjs';
 
 describe('TaskService', () => {
   let service: TaskService;
@@ -20,17 +18,14 @@ describe('TaskService', () => {
     title: 'Test Task',
     description: 'Testing task service',
     completed: false,
+    eventId: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        TaskService,
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [TaskService, provideHttpClient(), provideHttpClientTesting()],
     });
 
     service = TestBed.inject(TaskService);
@@ -42,7 +37,7 @@ describe('TaskService', () => {
   });
 
   it('should fetch all tasks and map DTOs to Task instances (GET)', () => {
-    service.getTasks().subscribe((tasks) => {
+    service.getAll().subscribe((tasks) => {
       expect(tasks.length).toBe(1);
       expect(tasks[0]).toBeInstanceOf(Task);
       expect(tasks[0].id).toBe(mockTaskDto.id);
@@ -56,15 +51,13 @@ describe('TaskService', () => {
   });
 
   it('should fetch a task by id and map to Task instance (GET)', () => {
-    service.getTaskById('1').subscribe((task) => {
+    service.getById('1').subscribe((task) => {
       expect(task).toBeInstanceOf(Task);
-      expect(task.id).toBe('1');
-      expect(task.title).toBe(mockTaskDto.title);
+      expect(task?.id).toBe('1');
+      expect(task?.title).toBe(mockTaskDto.title);
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiUrl}/tasks/1`
-    );
+    const req = httpMock.expectOne(`${environment.apiUrl}/tasks/1`);
     expect(req.request.method).toBe('GET');
 
     req.flush(mockTaskDto);
@@ -76,7 +69,7 @@ describe('TaskService', () => {
       description: 'Created via test',
     };
 
-    service.createTask(createDto).subscribe((task) => {
+    service.create(createDto.title, createDto.description).subscribe((task) => {
       expect(task).toBeInstanceOf(Task);
       expect(task.title).toBe(mockTaskDto.title);
     });
@@ -88,40 +81,50 @@ describe('TaskService', () => {
     req.flush(mockTaskDto);
   });
 
-  it('should update a task (PATCH)', () => {
+  it('should update a task (PATCH)', async () => {
     const updateDto = {
       completed: true,
     };
 
-    service.updateTask('1', updateDto).subscribe((task) => {
-      expect(task).toBeInstanceOf(Task);
-      expect(task.id).toBe('1');
-    });
-
-    const req = httpMock.expectOne(
-      `${environment.apiUrl}/tasks/1`
+    // Create domain Task instance
+    const existingTask = new Task(
+      mockTaskDto.id,
+      mockTaskDto.title,
+      mockTaskDto.description || '',
+      mockTaskDto.completed,
+      mockTaskDto.eventId || null,
+      new Date(mockTaskDto.createdAt),
+      new Date(mockTaskDto.updatedAt),
     );
+
+    const promise = firstValueFrom(service.update('1', updateDto, existingTask));
+
+    const req = httpMock.expectOne(`${environment.apiUrl}/tasks/1`);
+
     expect(req.request.method).toBe('PATCH');
     expect(req.request.body).toEqual(updateDto);
 
     req.flush(mockTaskDto);
+
+    const updatedTask = await promise;
+
+    expect(updatedTask).toBeInstanceOf(Task);
+    expect(updatedTask.id).toBe('1');
   });
 
   it('should delete a task (DELETE)', () => {
-    service.deleteTask('1').subscribe((response) => {
+    service.delete('1').subscribe((response) => {
       expect(response).toBeNull();
     });
 
-    const req = httpMock.expectOne(
-      `${environment.apiUrl}/tasks/1`
-    );
+    const req = httpMock.expectOne(`${environment.apiUrl}/tasks/1`);
     expect(req.request.method).toBe('DELETE');
 
     req.flush(null);
   });
 
   it('should propagate HTTP errors', () => {
-    service.getTasks().subscribe({
+    service.getAll().subscribe({
       next: () => {
         throw new Error('Expected error, but got success');
       },
@@ -131,9 +134,6 @@ describe('TaskService', () => {
     });
 
     const req = httpMock.expectOne(`${environment.apiUrl}/tasks`);
-    req.flush(
-      { message: 'Server error' },
-      { status: 500, statusText: 'Internal Server Error' }
-    );
+    req.flush({ message: 'Server error' }, { status: 500, statusText: 'Internal Server Error' });
   });
 });

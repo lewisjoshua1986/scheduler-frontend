@@ -2,7 +2,6 @@ import { TaskMapper } from './task.mapper';
 import { TaskDto } from './task.dto';
 
 describe('TaskMapper', () => {
-
   it('should convert DTO to Task', () => {
     const dto: TaskDto = {
       id: '1',
@@ -10,7 +9,7 @@ describe('TaskMapper', () => {
       description: 'desc',
       completed: false,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     const task = TaskMapper.fromDto(dto);
@@ -26,7 +25,7 @@ describe('TaskMapper', () => {
       description: undefined,
       completed: false,
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     const task = TaskMapper.fromDto(dto);
@@ -35,5 +34,4 @@ describe('TaskMapper', () => {
     expect(typeof converted.createdAt).toBe('string');
     expect(typeof converted.updatedAt).toBe('string');
   });
-
 });

@@ -1,45 +1,98 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { map, Observable } from 'rxjs';
-import { environment } from '../../../environments/environment';
+import { Injectable, Inject } from '@angular/core';
+import { Observable, map } from 'rxjs';
 
 import { Task } from '../models/task/task.model';
-
 import { TaskDto } from '../models/task/task.dto';
+import { TaskApi } from '../api/interfaces/task-api.interface';
 import { TaskMapper } from '../models/task/task.mapper';
 
 @Injectable({
   providedIn: 'root',
 })
 export class TaskService {
-  private http = inject(HttpClient);
-  private readonly baseUrl = `${environment.apiUrl}/tasks`;
+  constructor(@Inject(TaskApi) private readonly taskApi: TaskApi) {}
 
-  getTasks(): Observable<Task[]> {
-    return this.http.get<TaskDto[]>(this.baseUrl).pipe(
-      map(dtos => dtos.map(dto => TaskMapper.fromDto(dto)))
-    );
+  // --------------------------------------------------
+  // READ
+  // --------------------------------------------------
+
+  getAll(): Observable<Task[]> {
+    return this.taskApi.getAll().pipe(map((dtos) => dtos.map((dto) => TaskMapper.fromDto(dto))));
   }
 
-  getTaskById(id: string): Observable<Task> {
-    return this.http.get<TaskDto>(`${this.baseUrl}/${id}`).pipe(
-      map(dto => TaskMapper.fromDto(dto))
-    );
+  getById(id: string): Observable<Task | null> {
+    return this.taskApi.getById(id).pipe(map((dto) => (dto ? TaskMapper.fromDto(dto) : null)));
   }
 
-  createTask(dto: any): Observable<Task> {
-    return this.http.post<TaskDto>(this.baseUrl, dto).pipe(
-      map(dto => TaskMapper.fromDto(dto))
-    );
+  getTasksForEvent(eventId: string): Observable<Task[]> {
+    return this.taskApi
+      .getTasksByEventId(eventId)
+      .pipe(map((dtos) => dtos.map((dto) => TaskMapper.fromDto(dto))));
   }
 
-  updateTask(id: string, dto: any): Observable<Task> {
-    return this.http.patch<TaskDto>(`${this.baseUrl}/${id}`, dto).pipe(
-      map(dto => TaskMapper.fromDto(dto))
-    );
+  getUnscheduled(): Observable<Task[]> {
+    return this.getAll().pipe(map((tasks) => tasks.filter((t) => !t.eventId)));
   }
 
-  deleteTask(id: string): Observable<void> {
-    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  // --------------------------------------------------
+  // CREATE
+  // --------------------------------------------------
+
+  create(title: string, description?: string): Observable<Task> {
+    const dto: Partial<TaskDto> = {
+      title,
+      description: description ?? '',
+      completed: false,
+      eventId: null,
+    };
+
+    return this.taskApi.create(dto).pipe(map((created) => TaskMapper.fromDto(created)));
+  }
+
+  // --------------------------------------------------
+  // UPDATE
+  // --------------------------------------------------
+
+  update(p0: string, updateDto: { completed: boolean }, task: Task): Observable<Task> {
+    const dto: Partial<TaskDto> = {
+      title: task.title,
+      description: task.description || undefined,
+      completed: task.completed,
+      eventId: task.eventId,
+    };
+
+    return this.taskApi.update(task.id, dto).pipe(map((updated) => TaskMapper.fromDto(updated)));
+  }
+
+  assignToEvent(task: Task, eventId: string): Observable<Task> {
+    const dto: Partial<TaskDto> = {
+      eventId,
+    };
+
+    return this.taskApi.update(task.id, dto).pipe(map((updated) => TaskMapper.fromDto(updated)));
+  }
+
+  unschedule(task: Task): Observable<Task> {
+    const dto: Partial<TaskDto> = {
+      eventId: null,
+    };
+
+    return this.taskApi.update(task.id, dto).pipe(map((updated) => TaskMapper.fromDto(updated)));
+  }
+
+  markComplete(task: Task): Observable<Task> {
+    const dto: Partial<TaskDto> = {
+      completed: true,
+    };
+
+    return this.taskApi.update(task.id, dto).pipe(map((updated) => TaskMapper.fromDto(updated)));
+  }
+
+  // --------------------------------------------------
+  // DELETE
+  // --------------------------------------------------
+
+  delete(id: string): Observable<void> {
+    return this.taskApi.delete(id);
   }
 }

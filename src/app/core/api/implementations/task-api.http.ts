@@ -1,37 +1,59 @@
-import { HttpClient } from "@angular/common/http";
-import { Injectable } from "@angular/core";
-import { Observable } from "rxjs";
-import { TaskApi } from "../interfaces/task-api.interface";
-import { environment } from "../../../../environments/environment";
-import { Task } from "../../models/task/task.model";
-import { CreateTaskDto } from "../../models/task/create-task.dto";
-import { UpdateTaskDto } from "../../models/task/update-task.dto";
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+import { TaskApi } from '../interfaces/task-api.interface';
+import { TaskDto } from '../../models/task/task.dto';
 
-
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class TaskApiHttp implements TaskApi {
-
-  private baseUrl = environment.apiUrl + '/tasks';
+  private readonly baseUrl = '/api/tasks';
 
   constructor(private http: HttpClient) {}
 
-  getTasks(): Observable<Task[]> {
-    return this.http.get<Task[]>(this.baseUrl);
+  /**
+   * Get all tasks
+   */
+  getAll(): Observable<TaskDto[]> {
+    return this.http.get<TaskDto[]>(this.baseUrl);
   }
 
-  getTask(id: string): Observable<Task> {
-    return this.http.get<Task>(`${this.baseUrl}/${id}`);
+  /**
+   * Get a single task by id
+   */
+  getById(id: string): Observable<TaskDto> {
+    return this.http.get<TaskDto>(`${this.baseUrl}/${id}`);
   }
 
-  createTask(task: CreateTaskDto): Observable<Task> {
-    return this.http.post<Task>(this.baseUrl, task);
+  /**
+   * Get tasks optionally filtered by eventId
+   * If eventId is undefined, returns ALL tasks
+   */
+  getTasksByEventId(eventId: string): Observable<TaskDto[]> {
+    const params = new HttpParams().set('eventId', eventId);
+    return this.http.get<TaskDto[]>(this.baseUrl, { params });
   }
 
-  updateTask(id: string, task: UpdateTaskDto): Observable<Task> {
-    return this.http.put<Task>(`${this.baseUrl}/${id}`, task);
+  /**
+   * Create a task
+   * eventId is optional in DTO
+   */
+  create(task: TaskDto): Observable<TaskDto> {
+    return this.http.post<TaskDto>(this.baseUrl, task);
   }
 
-  deleteTask(id: string): Observable<void> {
+  /**
+   * Update a task
+   */
+  update(id: string, task: Partial<TaskDto>): Observable<TaskDto> {
+    return this.http.put<TaskDto>(`${this.baseUrl}/${id}`, task);
+  }
+
+  /**
+   * Delete a task
+   */
+  delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }
