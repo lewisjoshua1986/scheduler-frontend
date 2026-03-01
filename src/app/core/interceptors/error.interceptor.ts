@@ -21,10 +21,28 @@ export class ErrorInterceptor implements HttpInterceptor {
     return next.handle(req).pipe(
       catchError((error: HttpErrorResponse) => {
 
+        let message = error.statusText || 'Unknown Error';
+        let errors: string[] = [];
+
+        // If backend returned something
+        if (error.error) {
+
+          // Case 1: Backend returned JSON object
+          if (typeof error.error === 'object') {
+            message = error.error.message ?? error.statusText;
+            errors = error.error.errors ?? [];
+          }
+
+          // Case 2: Backend returned string body
+          else if (typeof error.error === 'string') {
+            message = error.statusText;
+          }
+        }
+
         const normalizedError: ApiError = {
           statusCode: error.status,
-          message: error.error?.message || error.message || 'Unknown error',
-          errors: error.error?.errors || [],
+          message,
+          errors,
           timestamp: new Date().toISOString(),
           path: req.url
         };
