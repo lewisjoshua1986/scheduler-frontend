@@ -10,6 +10,7 @@ describe('Task Model', () => {
       'Test Task',
       null,
       false,
+      null,
       new Date(),
       new Date()
     );

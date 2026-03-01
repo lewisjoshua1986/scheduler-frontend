@@ -7,8 +7,8 @@ import {
 } from '@angular/common/http/testing';
 
 import { TaskService } from './task.service';
-import { Task } from '../models/task.model';
-import { TaskDto } from '../models/task.dto';
+import { Task } from '../models/task/task.model';
+import { TaskDto } from '../models/task/task.dto';
 import { environment } from '../../../environments/environment';
 
 describe('TaskService', () => {

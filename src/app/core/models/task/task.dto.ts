@@ -3,6 +3,7 @@ export interface TaskDto {
   title: string;
   description?: string;
   completed: boolean;
+  eventId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

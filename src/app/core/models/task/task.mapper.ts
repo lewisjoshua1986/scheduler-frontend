@@ -10,6 +10,7 @@ export class TaskMapper {
       dto.title,
       dto.description ?? null,
       dto.completed,
+      dto.eventId ?? null,
       new Date(dto.createdAt),
       new Date(dto.updatedAt)
     );
@@ -21,6 +22,7 @@ export class TaskMapper {
       title: task.title,
       description: task.description ?? undefined,
       completed: task.completed,
+      eventId: task.eventId,
       createdAt: task.createdAt.toISOString(),
       updatedAt: task.updatedAt.toISOString()
     };

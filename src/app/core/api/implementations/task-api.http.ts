@@ -3,9 +3,9 @@ import { Injectable } from "@angular/core";
 import { Observable } from "rxjs";
 import { TaskApi } from "../interfaces/task-api.interface";
 import { environment } from "../../../../environments/environment";
-import { Task } from "../../models/task.model";
-import { CreateTaskDto } from "../../models/create-task.dto";
-import { UpdateTaskDto } from "../../models/update-task.dto";
+import { Task } from "../../models/task/task.model";
+import { CreateTaskDto } from "../../models/task/create-task.dto";
+import { UpdateTaskDto } from "../../models/task/update-task.dto";
 
 
 @Injectable()

@@ -1,16 +1,16 @@
 import { Injectable } from "@angular/core";
 import { delay, Observable, of } from "rxjs";
 import { TaskApi } from "../interfaces/task-api.interface";
-import { Task } from "../../models/task.model";
-import { CreateTaskDto } from "../../models/create-task.dto";
-import { UpdateTaskDto } from "../../models/update-task.dto";
+import { Task } from "../../models/task/task.model";
+import { CreateTaskDto } from "../../models/task/create-task.dto";
+import { UpdateTaskDto } from "../../models/task/update-task.dto";
 
 @Injectable()
 export class TaskApiMock implements TaskApi {
 
   private tasks: Task[] = [
-    new Task('1', 'Mock Task 1', 'First mock task', false, new Date(), new Date()),
-    new Task('2', 'Mock Task 2', 'Second mock task', true, new Date(), new Date())
+    new Task('1', 'Mock Task 1', 'First mock task', false, null, new Date(), new Date()),
+    new Task('2', 'Mock Task 2', 'Second mock task', true, null, new Date(), new Date())
   ];
 
   getTasks(): Observable<Task[]> {
@@ -29,6 +29,7 @@ export class TaskApiMock implements TaskApi {
       task.title,
       task.description ?? null,
       false,
+      null,
       now,
       now
     );
